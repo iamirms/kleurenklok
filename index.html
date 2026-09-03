@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digitale Kleurenklok</title>
+  <!-- ABeeZee Font van Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=ABeeZee:ital@0;1&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'ABeeZee', sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start; /* Lijn van boven uit zodat we de symmetrie goed kunnen sturen */
+      overflow: hidden;
+      position: relative;
+    }
+
+    .main-display {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between; /* Verdeelt de ruimte tussen titel en klok zodat de klok mooi naar beneden zakt */
+      width: 100%;
+      height: 100%;
+      /* Zorg dat de padding boven exact gelijk is aan de padding onder, zodat de titel en klok even ver van de randen af staan */
+      padding-top: 24px;
+      padding-bottom: 24px;
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    .header-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .current-hour-title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-top: 0;
+      margin-bottom: 2px;
+      color: #333;
+      text-align: center;
+    }
+
+    .current-time-sub {
+      font-size: 18px;
+      font-weight: normal;
+      color: #333;
+      margin-bottom: 0;
+      text-align: center;
+    }
+
+    .clock-container {
+      position: relative;
+      width: min(82vh, 92vw); /* Klok flink groter gemaakt om de resterende ruimte optimaal te vullen */
+      height: min(82vh, 92vw);
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: transparent;
+      overflow: visible;
+      font-family: 'ABeeZee', sans-serif;
+    }
+
+    /* Instellingenknop */
+    .settings-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      color: #78909c;
+      border: none;
+      padding: 8px;
+      border-radius: 50%;
+      font-size: 22px;
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease, background-color 0.2s ease;
+    }
+    .settings-btn:hover {
+      color: #37474f;
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .sidebar-overlay.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      right: -440px;
+      width: 420px;
+      max-width: 90vw;
+      height: 100%;
+      background: white;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.2);
+      padding: 25px 25px 100px 25px;
+      transition: right 0.3s ease;
+      z-index: 101;
+      overflow-y: auto;
+      font-family: 'ABeeZee', sans-serif;
+    }
+    .sidebar.open { right: 0; }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .sidebar-header h2 { margin: 0; font-size: 20px; color: #333; }
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #888;
+      font-family: 'ABeeZee', sans-serif;
+    }
+
+    .section-title-label {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #78909c;
+      margin-bottom: 10px;
+    }
+
+    .hour-card {
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: #fdfdfd;
+      overflow: visible;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hour-card.open {
+      border-color: #1565c0;
+      box-shadow: 0 2px 8px rgba(21, 101, 192, 0.12);
+    }
+
+    .hour-card-header {
+      padding: 12px 15px;
+      background: #f8f9fa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      border-radius: 8px 8px 0 0;
+    }
+    .hour-card.open .hour-card-header {
+      background: #e3f2fd;
+    }
+
+    .hour-card-title {
+      font-weight: bold;
+      font-size: 15px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hour-card-title i {
+      color: #1565c0;
+      transition: transform 0.2s ease;
+    }
+
+    .hour-card-meta {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hour-card-body {
+      padding: 15px;
+      display: none;
+      border-top: 1px solid #e9ecef;
+      background: #ffffff;
+      border-radius: 0 0 8px 8px;
+    }
+    .hour-card.open .hour-card-body {
+      display: block;
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .form-row label {
+      font-weight: bold;
+      color: #555;
+    }
+
+    .blocks-table-header {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #666;
+      margin-top: 15px;
+      margin-bottom: 8px;
+    }
+    .blocks-table-header .col-name { flex: 1; }
+    .blocks-table-header .col-min { width: 50px; }
+    .blocks-table-header .col-color { width: 30px; }
+    .blocks-table-header .col-action { width: 26px; }
+
+    .block-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .block-input input[type="text"], 
+    .block-input input[type="number"],
+    .form-row input[type="text"],
+    select { font-family: 'ABeeZee', sans-serif; }
+    
+    .block-input input[type="text"],
+    .form-row input[type="text"] {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .block-input input[type="number"] {
+      width: 50px;
+      padding: 6px 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .color-swatch-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.1s ease;
+    }
+    .color-swatch-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .palette-popover {
+      display: none;
+      position: absolute;
+      right: 35px;
+      top: 38px;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 10px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      z-index: 999;
+    }
+    .palette-popover.open { display: grid; }
+
+    .palette-swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      transition: transform 0.1s ease;
+    }
+    .palette-swatch:hover { transform: scale(1.15); }
+
+    .section-box {
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      background: #fdfdfd;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .sound-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background-color: #1565c0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 16px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'ABeeZee', sans-serif;
+      width: 100%;
+    }
+    .btn-primary:hover { background-color: #0d47a1; }
+
+    .btn-secondary {
+      background-color: #ffffff;
+      color: #1565c0;
+      border: 1px solid #a6c8e0;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'ABeeZee', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-secondary:hover {
+      background-color: #f4f8fb;
+      border-color: #1565c0;
+    }
+
+    .btn-tertiary {
+      background: transparent;
+      color: #1565c0;
+      border: none;
+      padding: 6px 0;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'ABeeZee', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+    }
+    .btn-tertiary span { text-decoration: underline; }
+    .btn-tertiary:hover span { color: #0d47a1; }
+
+    .btn-add-hour {
+      width: 100%;
+      padding: 10px;
+      border: 1px dashed #1565c0;
+      background: #f4f8fb;
+      color: #1565c0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 25px;
+      transition: background 0.2s ease;
+    }
+    .btn-add-hour:hover { background: #e3f2fd; }
+
+    .btn-icon-tertiary {
+      background: transparent;
+      border: none;
+      color: #1565c0;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-icon-tertiary:hover {
+      background-color: rgba(21, 101, 192, 0.08);
+      color: #d32f2f;
+    }
+  </style>
+</head>
+<body onclick="unlockAudio()">
+
+  <button class="settings-btn" title="Instellingen" onclick="toggleSidebar(true)">
+    <i class="fa-solid fa-gear"></i>
+  </button>
+
+  <div class="main-display">
+    <div class="header-group">
+      <div id="clock-title" class="current-hour-title">Goedemorgen!</div>
+      <div id="clock-time" class="current-time-sub">07:00 - 08:00</div>
+    </div>
+    <div class="clock-container">
+      <svg id="clock" viewBox="0 0 360 360">
+        <defs id="svg-defs"></defs>
+
+        <!-- Binnenste Hoofdschijf (Huidige Uur) -->
+        <g id="slices" style="filter: drop-shadow(0px 6px 15px rgba(0,0,0,0.12));"></g>
+
+        <!-- Buitenring (Zonder witte rand) -->
+        <g id="outer-ring"></g>
+        
+        <!-- Zwarte Rand Hoofdschijf -->
+        <circle cx="180" cy="180" r="145" fill="none" stroke="#000000" stroke-width="4" />
+        
+        <!-- Wijzer -->
+        <g id="hand-layer">
+          <line id="minute-hand" x1="180" y1="195" x2="180" y2="45" stroke="#000000" stroke-width="6" stroke-linecap="round" />
+          <circle cx="180" cy="180" r="6" fill="#000000" />
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+  <div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>Instellingen</h2>
+      <button class="close-btn" onclick="toggleSidebar(false)"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="section-title-label">Dagplanning / Uurschema's</div>
+    <div id="accordion-list"></div>
+
+    <button class="btn-add-hour" onclick="addHourSchema()">
+      <i class="fa-solid fa-plus"></i> Nieuw uur toevoegen
+    </button>
+
+    <div class="section-title-label">Algemeen</div>
+    <div class="section-box">
+      <div class="section-title">Geluid bij afloop blok</div>
+      <div class="sound-controls">
+        <select id="sound-select" style="flex: 1 1 150px; padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="changeSound(this.value)">
+          <option value="aankondiging">Oplopend</option>
+          <option value="afkondiging">Aflopend</option>
+          <option value="bigben">Big Ben</option>
+          <option value="gong">Gong</option>
+          <option value="startrek">Star Trek</option>
+        </select>
+        <button class="btn-secondary" onclick="playSelectedSound()"><i class="fa-solid fa-volume-high"></i> Test</button>
+      </div>
+    </div>
+    
+    <button class="btn-primary" onclick="saveDataAndClock()" style="margin-bottom: 20px;">Opslaan & Sluiten</button>
+  </div>
+
+  <script>
+    const TEST_OUTER_RING = false;
+
+    const fixedPalette = [
+      '#7B4B8A', // Paars
+      '#D35265', // Rood/Roze
+      '#E56B48', // Oranje/Rood
+      '#F2963B', // Oranje
+      '#F2C042', // Geel
+      '#A2CA6B', // Lichtgroen
+      '#59B882', // Groen
+      '#4DB8B5', // Lichtblauw
+      '#3B8E9B', // Blauw
+      '#285963'  // Donkerblauw
+    ];
+
+    const defaultSchedule = [
+      {
+        title: 'Goedemorgen!',
+        startHour: 7,
+        blocks: [
+          { name: 'wakker worden', duration: 15, color: '#F2C042' },
+          { name: 'aankleden', duration: 15, color: '#E56B48' },
+          { name: 'ontbijten', duration: 30, color: '#4DB8B5' }
+        ]
+      },
+      {
+        title: 'Naar school',
+        startHour: 8,
+        blocks: [
+          { name: 'Tanden poetsen', duration: 15, color: '#F2C042' },
+          { name: 'Schoenen aan', duration: 10, color: '#D35265' },
+          { name: 'Jas & Tas', duration: 10, color: '#4DB8B5' },
+          { name: 'Naar school', duration: 25, color: '#59B882' }
+        ]
+      }
+    ];
+
+    let schedule = [];
+    let activeEditIndex = 0;
+    let openPopoverIndex = null;
+    let lastPlayedMinute = -1;
+    let selectedSound = 'aankondiging';
+    let audioCtx = null;
+
+    function unlockAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSelectedSound() {
+      unlockAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      if (selectedSound === 'aankondiging') {
+        createTone(1046.50, now, 1.8, 0.25, 'sine');
+        createTone(1318.51, now + 0.2, 2.0, 0.28, 'sine');
+        createTone(1567.98, now + 0.4, 2.2, 0.32, 'sine');
+        createTone(2093.00, now + 0.6, 2.8, 0.35, 'sine');
+      } 
+      else if (selectedSound === 'afkondiging') {
+        createTone(2093.00, now, 1.8, 0.35, 'sine');
+        createTone(1567.98, now + 0.2, 2.0, 0.32, 'sine');
+        createTone(1318.51, now + 0.4, 2.2, 0.28, 'sine');
+        createTone(1046.50, now + 0.6, 2.8, 0.25, 'sine');
+      } 
+      else if (selectedSound === 'bigben') {
+        createTone(329.63, now, 1.2, 0.35, 'sine');
+        createTone(415.30, now + 0.45, 1.2, 0.35, 'sine');
+        createTone(369.99, now + 0.90, 1.2, 0.35, 'sine');
+        createTone(246.94, now + 1.35, 2.5, 0.40, 'sine');
+      } 
+      else if (selectedSound === 'gong') {
+        createTone(146.83, now, 5.0, 0.45, 'sine');
+        createTone(293.66, now, 4.5, 0.20, 'sine');
+        createTone(440.00, now + 0.05, 3.5, 0.10, 'sine');
+      } 
+      else if (selectedSound === 'startrek') {
+        createTone(880.00, now, 0.1, 0.3, 'sine');
+        createTone(1760.00, now + 0.08, 0.12, 0.35, 'sine');
+        createTone(1318.51, now + 0.25, 0.8, 0.35, 'triangle');
+      }
+    }
+
+    function createTone(freq, startTime, duration, volume, type) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, startTime);
+      
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(volume, startTime + 0.03); 
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    }
+
+    function changeSound(newSound) {
+      selectedSound = newSound;
+      localStorage.setItem('kleurenklok_sound', newSound);
+      playSelectedSound();
+    }
+
+    function loadSavedData() {
+      const saved = localStorage.getItem('kleurenklok_schedule');
+      if (saved) {
+        try { schedule = JSON.parse(saved); } 
+        catch (e) { schedule = JSON.parse(JSON.stringify(defaultSchedule)); }
+      } else {
+        schedule = JSON.parse(JSON.stringify(defaultSchedule));
+      }
+
+      const savedSound = localStorage.getItem('kleurenklok_sound');
+      if (savedSound) {
+        selectedSound = savedSound;
+        document.getElementById('sound-select').value = savedSound;
+      }
+    }
+
+    function saveData() {
+      localStorage.setItem('kleurenklok_schedule', JSON.stringify(schedule));
+    }
+
+    function toggleSidebar(open) {
+      unlockAudio();
+      document.getElementById('sidebar').classList.toggle('open', open);
+      document.getElementById('sidebar-overlay').classList.toggle('open', open);
+      if (!open) closeAllPopovers();
+    }
+
+    function closeAllPopovers() {
+      document.querySelectorAll('.palette-popover').forEach(el => el.classList.remove('open'));
+      openPopoverIndex = null;
+    }
+
+    function toggleHourCard(index) {
+      activeEditIndex = (activeEditIndex === index) ? -1 : index;
+      renderAccordions();
+      updateClock();
+    }
+
+    function renderAccordions() {
+      const container = document.getElementById('accordion-list');
+      container.innerHTML = '';
+
+      schedule.forEach((item, hourIndex) => {
+        const isOpen = hourIndex === activeEditIndex;
+        const totalMin = item.blocks.reduce((sum, b) => sum + (parseInt(b.duration) || 0), 0);
+        const hourTitleText = item.title || `Uur ${item.startHour.toString().padStart(2, '0')}:00`;
+
+        const card = document.createElement('div');
+        card.className = `hour-card ${isOpen ? 'open' : ''}`;
+
+        const header = document.createElement('div');
+        header.className = 'hour-card-header';
+        header.onclick = () => toggleHourCard(hourIndex);
+        
+        const chevronIcon = isOpen ? 'fa-chevron-down' : 'fa-chevron-right';
+        header.innerHTML = `
+          <div class="hour-card-title">
+            <i class="fa-solid ${chevronIcon}"></i>
+            <span>${hourTitleText}</span>
+          </div>
+          <div class="hour-card-meta">
+            <span>${item.startHour.toString().padStart(2, '0')}:00 (${totalMin}m)</span>
+            ${schedule.length > 1 ? `<button class="btn-icon-tertiary" title="Verwijder dit uur" onclick="removeHourSchema(${hourIndex}, event)"><i class="fa-regular fa-trash-can"></i></button>` : ''}
+          </div>
+        `;
+
+        const body = document.createElement('div');
+        body.className = 'hour-card-body';
+
+        let hourOptions = '';
+        for (let h = 0; h < 24; h++) {
+          const val = h.toString().padStart(2, '0') + ':00';
+          hourOptions += `<option value="${h}" ${h === item.startHour ? 'selected' : ''}>${val}</option>`;
+        }
+
+        let blocksHtml = '';
+        item.blocks.forEach((block, blockIndex) => {
+          const swatchesHtml = fixedPalette.map(c => 
+            `<div class="palette-swatch" style="background:${c};" onclick="selectColor(${hourIndex}, ${blockIndex}, '${c}')"></div>`
+          ).join('');
+
+          blocksHtml += `
+            <div class="block-input">
+              <input type="text" value="${block.name}" placeholder="Naam" onchange="updateBlockName(${hourIndex}, ${blockIndex}, this.value)">
+              <input type="number" value="${block.duration}" min="1" onchange="updateBlockDuration(${hourIndex}, ${blockIndex}, this.value)">
+              <div class="color-swatch-btn" style="background:${block.color};" onclick="togglePalettePopover(${hourIndex}, ${blockIndex}, event)"></div>
+              <div id="popover-${hourIndex}-${blockIndex}" class="palette-popover">${swatchesHtml}</div>
+              <button class="btn-icon-tertiary" title="Verwijder blok" onclick="removeBlock(${hourIndex}, ${blockIndex})"><i class="fa-regular fa-trash-can"></i></button>
+            </div>
+          `;
+        });
+
+        body.innerHTML = `
+          <div class="form-row">
+            <label style="width: 120px;">Naam:</label>
+            <input type="text" value="${item.title || ''}" placeholder="Bijv. Ochtendritueel" onchange="updateHourTitle(${hourIndex}, this.value)">
+          </div>
+          <div class="form-row" style="padding-bottom: 10px; border-bottom: 1px dashed #e0e0e0;">
+            <label style="width: 120px;">Startuur scherm:</label>
+            <select onchange="updateStartHour(${hourIndex}, this.value)" style="padding: 4px; border-radius: 4px; border: 1px solid #ccc; flex: 1;">
+              ${hourOptions}
+            </select>
+          </div>
+          
+          <div class="blocks-table-header">
+            <div class="col-name">Tijdsblokken</div>
+            <div class="col-min">Min.</div>
+            <div class="col-color"></div>
+            <div class="col-action"></div>
+          </div>
+
+          ${blocksHtml}
+          <button class="btn-tertiary" onclick="addBlock(${hourIndex})"><i class="fa-solid fa-plus"></i> <span>Blok toevoegen</span></button>
+        `;
+
+        card.appendChild(header);
+        card.appendChild(body);
+        container.appendChild(card);
+      });
+    }
+
+    function togglePalettePopover(hourIndex, blockIndex, event) {
+      event.stopPropagation();
+      const popover = document.getElementById(`popover-${hourIndex}-${blockIndex}`);
+      const isOpen = popover.classList.contains('open');
+      closeAllPopovers();
+      if (!isOpen) popover.classList.add('open');
+    }
+
+    function selectColor(hourIndex, blockIndex, color) {
+      schedule[hourIndex].blocks[blockIndex].color = color;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function updateHourTitle(hourIndex, value) {
+      schedule[hourIndex].title = value;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function updateBlockName(hourIndex, blockIndex, value) {
+      schedule[hourIndex].blocks[blockIndex].name = value;
+      saveData();
+      updateClock();
+    }
+
+    function updateBlockDuration(hourIndex, blockIndex, value) {
+      schedule[hourIndex].blocks[blockIndex].duration = parseInt(value) || 0;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    document.addEventListener('click', () => closeAllPopovers());
+
+    function updateStartHour(hourIndex, newHour) {
+      schedule[hourIndex].startHour = parseInt(newHour);
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function addBlock(hourIndex) {
+      schedule[hourIndex].blocks.push({ name: 'Nieuw blok', duration: 15, color: fixedPalette[0] });
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function removeBlock(hourIndex, blockIndex) {
+      schedule[hourIndex].blocks.splice(blockIndex, 1);
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function addHourSchema() {
+      const lastHour = schedule.length > 0 ? schedule[schedule.length - 1].startHour : 7;
+      const nextHour = (lastHour + 1) % 24;
+      schedule.push({
+        title: '',
+        startHour: nextHour,
+        blocks: [{ name: 'Nieuw blok', duration: 30, color: fixedPalette[3] }]
+      });
+      activeEditIndex = schedule.length - 1;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function removeHourSchema(hourIndex, event) {
+      event.stopPropagation();
+      schedule.splice(hourIndex, 1);
+      if (activeEditIndex >= schedule.length) activeEditIndex = schedule.length - 1;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function saveDataAndClock() {
+      saveData();
+      updateClock();
+      toggleSidebar(false);
+    }
+
+    function getCoordinatesForPercent(percent, radius) {
+      const angle = (percent * 2 * Math.PI) - (Math.PI / 2);
+      return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+    }
+
+    function getCurrentActiveSchema() {
+      const currentHour = new Date().getHours();
+      const currentSchema = schedule.find(s => s.startHour === currentHour);
+      return currentSchema || (activeEditIndex >= 0 ? schedule[activeEditIndex] : schedule[0]);
+    }
+
+    function getNextSchema(currentSchema) {
+      if (!currentSchema) return null;
+      const nextHour = (currentSchema.startHour + 1) % 24;
+      return schedule.find(s => s.startHour === nextHour) || null;
+    }
+
+    function renderInnerClock(blocks) {
+      const group = document.getElementById('slices');
+      group.innerHTML = '';
+      if (!blocks) return;
+
+      let cumulativePercent = 0;
+      const radius = 145;
+
+      blocks.forEach(block => {
+        const percent = block.duration / 60;
+        const startPercent = cumulativePercent;
+        cumulativePercent += percent;
+        const endPercent = cumulativePercent;
+
+        const [startX, startY] = getCoordinatesForPercent(startPercent, radius);
+        const [endX, endY] = getCoordinatesForPercent(endPercent, radius);
+
+        const largeArcFlag = percent > 0.5 ? 1 : 0;
+
+        const pathData = [
+          `M 180 180`,
+          `L ${180 + startX} ${180 + startY}`,
+          `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${180 + endX} ${180 + endY}`,
+          `Z`
+        ].join(' ');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData);
+        path.setAttribute('fill', block.color);
+        group.appendChild(path);
+
+        if (block.name && block.duration >= 3) {
+          const midPercent = startPercent + (percent / 2);
+          const textRadius = 85; 
+          const [midX, midY] = getCoordinatesForPercent(midPercent, textRadius);
+          
+          let angleDeg = midPercent * 360; 
+          let rotation = angleDeg - 90;
+          if (rotation > 90 && rotation < 270) {
+            rotation += 180;
+          }
+
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          const posX = 180 + midX;
+          const posY = 180 + midY;
+          
+          text.setAttribute('x', posX);
+          text.setAttribute('y', posY);
+          text.setAttribute('fill', '#ffffff');
+          text.setAttribute('font-size', '12');
+          text.setAttribute('font-weight', 'normal');
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dominant-baseline', 'middle');
+          text.setAttribute('transform', `rotate(${rotation}, ${posX}, ${posY})`);
+          text.textContent = block.name;
+
+          group.appendChild(text);
+        }
+      });
+    }
+
+    function renderOuterRing(nextSchema) {
+      const ringGroup = document.getElementById('outer-ring');
+      const defsGroup = document.getElementById('svg-defs');
+      ringGroup.innerHTML = '';
+      defsGroup.innerHTML = '';
+
+      const currentMinute = new Date().getMinutes();
+
+      if ((!TEST_OUTER_RING && currentMinute < 55) || !nextSchema || !nextSchema.blocks || nextSchema.blocks.length === 0) {
+        return;
+      }
+
+      const firstBlock = nextSchema.blocks[0];
+      const percent = firstBlock.duration / 60;
+      const startPercent = 0;
+      const endPercent = percent;
+
+      const innerR = 145;
+      const outerR = 168;
+
+      const [iStartX, iStartY] = getCoordinatesForPercent(startPercent, innerR);
+      const [iEndX, iEndY] = getCoordinatesForPercent(endPercent, innerR);
+      const [oStartX, oStartY] = getCoordinatesForPercent(startPercent, outerR);
+      const [oEndX, oEndY] = getCoordinatesForPercent(endPercent, outerR);
+
+      const largeArcFlag = percent > 0.5 ? 1 : 0;
+
+      const pathData = [
+        `M ${180 + oStartX} ${180 + oStartY}`,
+        `A ${outerR} ${outerR} 0 ${largeArcFlag} 1 ${180 + oEndX} ${180 + oEndY}`,
+        `L ${180 + iEndX} ${180 + iEndY}`,
+        `A ${innerR} ${innerR} 0 ${largeArcFlag} 0 ${180 + iStartX} ${180 + iStartY}`,
+        `Z`
+      ].join(' ');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathData);
+      path.setAttribute('fill', firstBlock.color);
+      ringGroup.appendChild(path);
+
+      if (firstBlock.name && firstBlock.duration >= 4) {
+        const pathId = `text-path-first-block`;
+        const textR = 156.5; 
+        const [tStartX, tStartY] = getCoordinatesForPercent(startPercent, textR);
+        const [tEndX, tEndY] = getCoordinatesForPercent(endPercent, textR);
+
+        const textPathDef = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        textPathDef.setAttribute('id', pathId);
+        textPathDef.setAttribute('d', [
+          `M ${180 + tStartX} ${180 + tStartY}`,
+          `A ${textR} ${textR} 0 ${largeArcFlag} 1 ${180 + tEndX} ${180 + tEndY}`
+        ].join(' '));
+
+        defsGroup.appendChild(textPathDef);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('fill', '#ffffff');
+        text.setAttribute('font-size', '10');
+        text.setAttribute('font-weight', 'bold');
+
+        const textPath = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
+        textPath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${pathId}`);
+        textPath.setAttribute('startOffset', '50%');
+        textPath.setAttribute('text-anchor', 'middle');
+        textPath.setAttribute('dominant-baseline', 'central');
+        textPath.textContent = firstBlock.name;
+
+        text.appendChild(textPath);
+        ringGroup.appendChild(text);
+      }
+    }
+
+    function updateClock() {
+      const activeSchema = getCurrentActiveSchema();
+      if (!activeSchema) return;
+
+      const endH = (activeSchema.startHour + 1) % 24;
+      const timeString = `${activeSchema.startHour.toString().padStart(2, '0')}:00 - ${endH.toString().padStart(2, '0')}:00`;
+      
+      document.getElementById('clock-title').textContent = activeSchema.title || timeString;
+      document.getElementById('clock-time').textContent = timeString;
+
+      renderInnerClock(activeSchema.blocks);
+
+      const nextSchema = getNextSchema(activeSchema);
+      renderOuterRing(nextSchema);
+    }
+
+    function updateHand() {
+      const now = new Date();
+      const currentMinute = now.getMinutes();
+      const currentSecond = now.getSeconds();
+      
+      const minutes = currentMinute + (currentSecond / 60);
+      const minuteDeg = minutes * 6;
+
+      const handLayer = document.getElementById('hand-layer');
+      if (handLayer) {
+        handLayer.setAttribute('transform', `rotate(${minuteDeg}, 180, 180)`);
+      }
+
+      if (lastPlayedMinute !== currentMinute) {
+        const activeSchema = getCurrentActiveSchema();
+      if (activeSchema && activeSchema.blocks) {
+          let accumulatedMin = 0;
+          for (let block of activeSchema.blocks) {
+            accumulatedMin += block.duration;
+            if (currentMinute === (accumulatedMin % 60)) {
+              playSelectedSound();
+              lastPlayedMinute = currentMinute;
+              break;
+            }
+          }
+        }
+      }
+
+      updateClock();
+    }
+
+    loadSavedData();
+    renderAccordions();
+    updateClock();
+    updateHand();
+    setInterval(updateHand, 1000);
+  </script>
+</body>
+</html>
