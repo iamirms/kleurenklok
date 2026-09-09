@@ -22,7 +22,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start; /* Lijn van boven uit zodat we de symmetrie goed kunnen sturen */
+      justify-content: center;
       overflow: hidden;
       position: relative;
     }
@@ -31,14 +31,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-between; /* Verdeelt de ruimte tussen titel en klok zodat de klok mooi naar beneden zakt */
+      justify-content: center;
       width: 100%;
       height: 100%;
-      /* Zorg dat de padding boven exact gelijk is aan de padding onder, zodat de titel en klok even ver van de randen af staan */
-      padding-top: 24px;
-      padding-bottom: 24px;
-      padding-left: 10px;
-      padding-right: 10px;
+      padding: 24px 10px;
+      gap: 20px;
     }
 
     .header-group {
@@ -66,8 +63,8 @@
 
     .clock-container {
       position: relative;
-      width: min(82vh, 92vw); /* Klok flink groter gemaakt om de resterende ruimte optimaal te vullen */
-      height: min(82vh, 92vw);
+      width: min(75vh, 90vw);
+      height: min(75vh, 90vw);
     }
 
     svg {
@@ -422,9 +419,25 @@
       background-color: rgba(21, 101, 192, 0.08);
       color: #d32f2f;
     }
+
+    /* Onzichtbare video elementen voor iPad Wake Lock */
+    #wake-lock-video {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0.01;
+      pointer-events: none;
+      top: 0;
+      left: 0;
+    }
   </style>
 </head>
-<body onclick="unlockAudio()">
+<body onclick="handleUserInteraction()">
+
+  <!-- Onzichtbare video-loop als fallback voor iOS/iPadOS -->
+  <video id="wake-lock-video" muted playsinline loop>
+    <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAA1tZGF0AAAAAAABAAA=" type="video/mp4">
+  </video>
 
   <button class="settings-btn" title="Instellingen" onclick="toggleSidebar(true)">
     <i class="fa-solid fa-gear"></i>
@@ -442,9 +455,12 @@
         <!-- Binnenste Hoofdschijf (Huidige Uur) -->
         <g id="slices" style="filter: drop-shadow(0px 6px 15px rgba(0,0,0,0.12));"></g>
 
-        <!-- Buitenring (Zonder witte rand) -->
+        <!-- Buitenring -->
         <g id="outer-ring"></g>
         
+        <!-- Klok-streepjes -->
+        <g id="ticks-layer"></g>
+
         <!-- Zwarte Rand Hoofdschijf -->
         <circle cx="180" cy="180" r="145" fill="none" stroke="#000000" stroke-width="4" />
         
@@ -492,17 +508,10 @@
   <script>
     const TEST_OUTER_RING = false;
 
+    // Nieuw kleurenpalette
     const fixedPalette = [
-      '#7B4B8A', // Paars
-      '#D35265', // Rood/Roze
-      '#E56B48', // Oranje/Rood
-      '#F2963B', // Oranje
-      '#F2C042', // Geel
-      '#A2CA6B', // Lichtgroen
-      '#59B882', // Groen
-      '#4DB8B5', // Lichtblauw
-      '#3B8E9B', // Blauw
-      '#285963'  // Donkerblauw
+      '#629905', '#8BC53F', '#C1E658', '#006798', '#3398D4', 
+      '#8E0062', '#C92E92', '#FF5500', '#FF9300', '#FFC200'
     ];
 
     const defaultSchedule = [
@@ -510,19 +519,19 @@
         title: 'Goedemorgen!',
         startHour: 7,
         blocks: [
-          { name: 'wakker worden', duration: 15, color: '#F2C042' },
-          { name: 'aankleden', duration: 15, color: '#E56B48' },
-          { name: 'ontbijten', duration: 30, color: '#4DB8B5' }
+          { name: 'wakker worden', duration: 15, color: '#FFC200' },
+          { name: 'aankleden', duration: 15, color: '#FF5500' },
+          { name: 'ontbijten', duration: 30, color: '#3398D4' }
         ]
       },
       {
         title: 'Naar school',
         startHour: 8,
         blocks: [
-          { name: 'Tanden poetsen', duration: 15, color: '#F2C042' },
-          { name: 'Schoenen aan', duration: 10, color: '#D35265' },
-          { name: 'Jas & Tas', duration: 10, color: '#4DB8B5' },
-          { name: 'Naar school', duration: 25, color: '#59B882' }
+          { name: 'Tanden poetsen', duration: 15, color: '#FFC200' },
+          { name: 'Schoenen aan', duration: 10, color: '#C92E92' },
+          { name: 'Jas & Tas', duration: 10, color: '#3398D4' },
+          { name: 'Naar school', duration: 25, color: '#8BC53F' }
         ]
       }
     ];
@@ -533,6 +542,35 @@
     let lastPlayedMinute = -1;
     let selectedSound = 'aankondiging';
     let audioCtx = null;
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.log('Wake Lock error:', err.message);
+        }
+      }
+      const video = document.getElementById('wake-lock-video');
+      if (video && video.paused) {
+        video.play().catch(e => console.log('Video play error:', e));
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+      }
+    });
+
+    function handleUserInteraction() {
+      unlockAudio();
+      requestWakeLock();
+    }
 
     function unlockAudio() {
       if (!audioCtx) {
@@ -601,6 +639,34 @@
       playSelectedSound();
     }
 
+    function drawClockTicks() {
+      const ticksGroup = document.getElementById('ticks-layer');
+      ticksGroup.innerHTML = '';
+      const radius = 145;
+
+      for (let i = 0; i < 60; i++) {
+        const angle = (i * 6) * (Math.PI / 180);
+        const isFiveMin = i % 5 === 0;
+        const tickLength = isFiveMin ? 10 : 5;
+        const strokeWidth = isFiveMin ? 2.5 : 1.2;
+
+        const x1 = 180 + Math.sin(angle) * (radius - tickLength);
+        const y1 = 180 - Math.cos(angle) * (radius - tickLength);
+        const x2 = 180 + Math.sin(angle) * radius;
+        const y2 = 180 - Math.cos(angle) * radius;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke', '#000000');
+        line.setAttribute('stroke-width', strokeWidth);
+        line.setAttribute('stroke-linecap', 'round');
+        ticksGroup.appendChild(line);
+      }
+    }
+
     function loadSavedData() {
       const saved = localStorage.getItem('kleurenklok_schedule');
       if (saved) {
@@ -622,7 +688,7 @@
     }
 
     function toggleSidebar(open) {
-      unlockAudio();
+      handleUserInteraction();
       document.getElementById('sidebar').classList.toggle('open', open);
       document.getElementById('sidebar-overlay').classList.toggle('open', open);
       if (!open) closeAllPopovers();
@@ -766,8 +832,16 @@
       updateClock();
     }
 
+    function getUnusedColor(hourIndex) {
+      const currentBlocks = schedule[hourIndex].blocks;
+      const usedColors = currentBlocks.map(b => b.color.toUpperCase());
+      const unusedColor = fixedPalette.find(c => !usedColors.includes(c.toUpperCase()));
+      return unusedColor || fixedPalette[Math.floor(Math.random() * fixedPalette.length)];
+    }
+
     function addBlock(hourIndex) {
-      schedule[hourIndex].blocks.push({ name: 'Nieuw blok', duration: 15, color: fixedPalette[0] });
+      const nextColor = getUnusedColor(hourIndex);
+      schedule[hourIndex].blocks.push({ name: 'Nieuw blok', duration: 15, color: nextColor });
       saveData();
       renderAccordions();
       updateClock();
@@ -990,7 +1064,7 @@
 
       if (lastPlayedMinute !== currentMinute) {
         const activeSchema = getCurrentActiveSchema();
-      if (activeSchema && activeSchema.blocks) {
+        if (activeSchema && activeSchema.blocks) {
           let accumulatedMin = 0;
           for (let block of activeSchema.blocks) {
             accumulatedMin += block.duration;
@@ -1008,6 +1082,7 @@
 
     loadSavedData();
     renderAccordions();
+    drawClockTicks();
     updateClock();
     updateHand();
     setInterval(updateHand, 1000);
