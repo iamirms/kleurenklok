@@ -1,9 +1,10 @@
+<!-- Version: 1.4.2 - met wijzers, routines, cijfers, timers-->
 <!DOCTYPE html>
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blokjesklok</title>
+  <title>Blokjesklok v1.4.2</title>
   <!-- ABeeZee Font van Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,6 +36,1725 @@
       width: 100%;
       height: 100%;
       padding: 24px 10px;
+      gap: 20px;
+    }
+
+    .header-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 65px;
+      justify-content: center;
+    }
+
+    .current-hour-title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-top: 0;
+      margin-bottom: 2px;
+      color: #333;
+      text-align: center;
+    }
+
+    .current-time-sub {
+      font-size: 18px;
+      font-weight: normal;
+      color: #333;
+      margin-bottom: 0;
+      text-align: center;
+    }
+
+    .clock-container {
+      position: relative;
+      width: min(75vh, 90vw);
+      height: min(75vh, 90vw);
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: transparent;
+      overflow: visible;
+      font-family: 'ABeeZee', sans-serif;
+    }
+
+    .settings-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      color: #78909c;
+      border: none;
+      padding: 8px;
+      border-radius: 50%;
+      font-size: 22px;
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease, background-color 0.2s ease;
+    }
+    .settings-btn:hover {
+      color: #37474f;
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .sidebar-overlay.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      right: -460px;
+      width: 440px;
+      max-width: 92vw;
+      height: 100%;
+      background: white;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.2);
+      padding: 25px 25px 100px 25px;
+      transition: right 0.3s ease;
+      z-index: 101;
+      overflow-y: auto;
+      font-family: 'ABeeZee', sans-serif;
+    }
+    .sidebar.open { right: 0; }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 10px;
+    }
+    .sidebar-header h2 { margin: 0; font-size: 20px; color: #333; }
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #888;
+      font-family: 'ABeeZee', sans-serif;
+    }
+
+    .section-title-label {
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #78909c;
+      margin-top: 15px;
+      margin-bottom: 10px;
+    }
+
+    .hour-card {
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: #fdfdfd;
+      overflow: visible;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hour-card.open {
+      border-color: #1565c0;
+      box-shadow: 0 2px 8px rgba(21, 101, 192, 0.12);
+    }
+
+    .hour-card-header {
+      padding: 12px 15px;
+      background: #f8f9fa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      border-radius: 8px 8px 0 0;
+    }
+    .hour-card.open .hour-card-header {
+      background: #e3f2fd;
+    }
+
+    .hour-card-title {
+      font-weight: bold;
+      font-size: 15px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hour-card-title i {
+      color: #1565c0;
+      transition: transform 0.2s ease;
+    }
+
+    .hour-card-meta {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hour-card-body {
+      padding: 15px;
+      display: none;
+      border-top: 1px solid #e9ecef;
+      background: #ffffff;
+      border-radius: 0 0 8px 8px;
+    }
+    .hour-card.open .hour-card-body {
+      display: block;
+    }
+
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 13px;
+      gap: 8px;
+    }
+    .form-row label {
+      font-weight: bold;
+      color: #555;
+    }
+
+    .time-picker-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .time-info-banner {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .time-info-banner.full {
+      background: #ffebee;
+      color: #c62828;
+      border-color: #ffcdd2;
+    }
+
+    .blocks-table-header {
+      display: flex;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: bold;
+      color: #666;
+      margin-top: 10px;
+      margin-bottom: 8px;
+    }
+    .blocks-table-header .col-play { width: 28px; }
+    .blocks-table-header .col-name { flex: 1; }
+    .blocks-table-header .col-min { width: 50px; }
+    .blocks-table-header .col-color { width: 30px; }
+    .blocks-table-header .col-action { width: 26px; }
+
+    .block-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .block-input input[type="text"], 
+    .block-input input[type="number"],
+    .form-row input[type="text"],
+    select { font-family: 'ABeeZee', sans-serif; }
+    
+    .block-input input[type="text"],
+    .form-row input[type="text"] {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .block-input input[type="number"] {
+      width: 50px;
+      padding: 6px 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    input:disabled, select:disabled {
+      background-color: #f5f5f5;
+      color: #888;
+      cursor: not-allowed;
+      border-color: #ddd !important;
+    }
+
+    .color-swatch-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.1s ease;
+    }
+    .color-swatch-btn.disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .color-swatch-btn:not(.disabled):hover { transform: scale(1.1); }
+
+    .palette-popover {
+      display: none;
+      position: absolute;
+      right: 35px;
+      top: 38px;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 10px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      z-index: 999;
+    }
+    .palette-popover.open { display: grid; }
+
+    .palette-swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      transition: transform 0.1s ease;
+    }
+    .palette-swatch:hover { transform: scale(1.15); }
+
+    .section-box {
+      border: 1px solid #ced4da;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      background: #fdfdfd;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .sound-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Toggle Switch Styling */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #555;
+    }
+    .toggle-row:last-child {
+      margin-bottom: 0;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #1565c0;
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    .btn-primary {
+      background-color: #1565c0;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 16px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'ABeeZee', sans-serif;
+      width: 100%;
+    }
+    .btn-primary:hover { background-color: #0d47a1; }
+
+    .btn-secondary {
+      background-color: #ffffff;
+      color: #1565c0;
+      border: 1px solid #a6c8e0;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'ABeeZee', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-secondary:hover {
+      background-color: #f4f8fb;
+      border-color: #1565c0;
+    }
+
+    .btn-edit {
+      background-color: #e3f2fd;
+      color: #1565c0;
+      border: 1px solid #90caf9;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background-color 0.2s ease;
+    }
+    .btn-edit:hover { background-color: #bbdefb; }
+    .btn-edit.active {
+      background-color: #4caf50;
+      color: #fff;
+      border-color: #388e3c;
+    }
+
+    .btn-tertiary {
+      background: transparent;
+      color: #1565c0;
+      border: none;
+      padding: 6px 0;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'ABeeZee', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+    }
+    .btn-tertiary span { text-decoration: underline; }
+    .btn-tertiary:hover span { color: #0d47a1; }
+    .btn-tertiary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-tertiary:disabled span { text-decoration: none; }
+
+    .btn-add-hour {
+      width: 100%;
+      padding: 10px;
+      border: 1px dashed #1565c0;
+      background: #f4f8fb;
+      color: #1565c0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 15px;
+      transition: background 0.2s ease;
+    }
+    .btn-add-hour:hover { background: #e3f2fd; }
+
+    .btn-icon-tertiary {
+      background: transparent;
+      border: none;
+      color: #1565c0;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-icon-tertiary:hover {
+      background-color: rgba(21, 101, 192, 0.08);
+      color: #d32f2f;
+    }
+
+    .btn-play-timer {
+      background: #e8f5e9;
+      border: 1px solid #a5d6a7;
+      color: #2e7d32;
+      cursor: pointer;
+      font-size: 13px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .btn-play-timer:hover {
+      background: #c8e6c9;
+      transform: scale(1.08);
+    }
+    .btn-play-timer.running {
+      background: #ffebee;
+      border-color: #ef9a9a;
+      color: #c62828;
+    }
+
+    #wake-canvas, #wake-video {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0.01;
+      pointer-events: none;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body onclick="handleUserInteraction()" ontouchstart="handleUserInteraction()">
+
+  <canvas id="wake-canvas" width="10" height="10"></canvas>
+  <video id="wake-video" muted playsinline loop></video>
+
+  <button class="settings-btn" title="Instellingen" onclick="toggleSidebar(true)">
+    <i class="fa-solid fa-gear"></i>
+  </button>
+
+  <div class="main-display">
+    <div class="header-group">
+      <div id="clock-title" class="current-hour-title">Goedemorgen!</div>
+      <div id="clock-time" class="current-time-sub">07:00 - 08:00</div>
+    </div>
+    <div class="clock-container">
+      <svg id="clock" viewBox="0 0 360 360">
+        <defs id="svg-defs"></defs>
+        <g id="slices" style="filter: drop-shadow(0px 6px 15px rgba(0,0,0,0.12));"></g>
+        <g id="outer-ring"></g>
+        <g id="ticks-layer"></g>
+        <g id="numbers-layer"></g>
+        <circle cx="180" cy="180" r="145" fill="none" stroke="#000000" stroke-width="4" />
+        <g id="hand-layer">
+          <!-- Kleine wijzer: transparant gemaakt met opacity="0.35" -->
+          <line id="hour-hand" x1="180" y1="180" x2="180" y2="90" stroke="#000000" stroke-width="6" stroke-linecap="round" opacity="0.35" display="none" />
+          <line id="minute-hand" x1="180" y1="195" x2="180" y2="45" stroke="#000000" stroke-width="6" stroke-linecap="round" />
+          <circle cx="180" cy="180" r="6" fill="#000000" />
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+  <div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h2>Instellingen</h2>
+      <button class="close-btn" onclick="toggleSidebar(false)"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- SECTIE 1: ROUTINES -->
+    <div class="section-title-label"><i class="fa-regular fa-clock"></i> Routines (Tijdgebonden)</div>
+    <div id="routines-accordion-list"></div>
+    <button class="btn-add-hour" onclick="addRoutine()">
+      <i class="fa-solid fa-plus"></i> Nieuwe routine toevoegen
+    </button>
+
+    <!-- SECTIE 2: TIMERS -->
+    <div class="section-title-label"><i class="fa-solid fa-hourglass-half"></i> Timers</div>
+    <div class="section-box" style="padding-bottom: 12px;">
+      <div class="blocks-table-header" style="margin-top: 0;">
+        <div class="col-play"></div>
+        <div class="col-name">Naam</div>
+        <div class="col-min">Min.</div>
+        <div class="col-color"></div>
+        <div class="col-action"></div>
+      </div>
+      <div id="standalone-timers-list"></div>
+      <button class="btn-tertiary" onclick="addStandaloneTimer()"><i class="fa-solid fa-plus"></i> <span>Timer toevoegen</span></button>
+    </div>
+
+    <!-- SECTIE 3: ALGEMEEN -->
+    <div class="section-title-label">Algemeen</div>
+    
+    <div class="section-box">
+      <div class="section-title">Weergave op de klok</div>
+      
+      <div class="toggle-row">
+        <span>Kleine wijzer (uurwijzer)</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-hour-hand" onchange="toggleHourHand(this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <span>Cijfers op de klok</span>
+        <label class="switch">
+          <input type="checkbox" id="toggle-clock-numbers" onchange="toggleClockNumbers(this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">Geluid bij afloop blok</div>
+      <div class="sound-controls">
+        <select id="sound-select" style="flex: 1 1 150px; padding: 6px; border-radius: 4px; border: 1px solid #ccc;" onchange="changeSound(this.value)">
+          <option value="aankondiging">Oplopend</option>
+          <option value="afkondiging">Aflopend</option>
+          <option value="bigben">Big Ben</option>
+          <option value="gong">Gong</option>
+          <option value="startrek">Star Trek</option>
+        </select>
+        <button class="btn-secondary" onclick="playSelectedSound()"><i class="fa-solid fa-volume-high"></i> Test</button>
+      </div>
+    </div>
+    
+    <button class="btn-primary" onclick="saveDataAndClock()" style="margin-bottom: 20px;">Opslaan & Sluiten</button>
+  </div>
+
+  <script>
+    const TEST_OUTER_RING = false;
+
+    const fixedPalette = [
+      '#629905', '#8BC53F', '#C1E658', '#006798', '#3398D4', 
+      '#8E0062', '#C92E92', '#FF5500', '#FF9300', '#FFC200'
+    ];
+
+    const defaultRoutines = [
+      {
+        title: 'Ochtendroutine',
+        startHour: 7,
+        startMin: 0,
+        endHour: 8,
+        endMin: 0,
+        blocks: [
+          { name: 'wakker worden', duration: 15, color: '#FFC200' },
+          { name: 'aankleden', duration: 15, color: '#FF5500' },
+          { name: 'ontbijten', duration: 30, color: '#3398D4' }
+        ]
+      },
+      {
+        title: 'Naar school',
+        startHour: 8,
+        startMin: 0,
+        endHour: 9,
+        endMin: 0,
+        blocks: [
+          { name: 'Tanden poetsen', duration: 15, color: '#FFC200' },
+          { name: 'Schoenen aan', duration: 10, color: '#C92E92' },
+          { name: 'Jas & Tas', duration: 10, color: '#3398D4' },
+          { name: 'Naar school', duration: 25, color: '#8BC53F' }
+        ]
+      }
+    ];
+
+    const defaultStandaloneTimers = [
+      { name: 'Schermtijd', duration: 30, color: '#C92E92' },
+      { name: 'Lezen', duration: 15, color: '#3398D4' }
+    ];
+
+    let routines = [];
+    let standaloneTimers = [];
+    let activeEditIndex = -1; 
+    let activeClockOverrideIndex = -1;
+    let activeBlockOverrideIndex = -1;
+    
+    let activeMode = 'clock'; 
+    let activeTimerIndex = -1;
+    let runningTimerState = null;
+    let timerInterval = null;
+
+    let showHourHand = false;
+    let showClockNumbers = false;
+
+    let lastPlayedMinute = -1;
+    let selectedSound = 'aankondiging';
+    let audioCtx = null;
+    let wakeLock = null;
+    let isVideoStreamRunning = false;
+
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try { wakeLock = await navigator.wakeLock.request('screen'); } 
+        catch (err) {}
+      }
+      startCanvasVideoStream();
+    }
+
+    function startCanvasVideoStream() {
+      if (isVideoStreamRunning) return;
+      const canvas = document.getElementById('wake-canvas');
+      const video = document.getElementById('wake-video');
+      if (!canvas || !video) return;
+
+      const ctx = canvas.getContext('2d');
+      let toggle = false;
+      setInterval(() => {
+        ctx.fillStyle = toggle ? '#ffffff' : '#000000';
+        ctx.fillRect(0, 0, 10, 10);
+        toggle = !toggle;
+      }, 1000);
+
+      try {
+        if (canvas.captureStream) {
+          video.srcObject = canvas.captureStream(1);
+          video.play().then(() => { isVideoStreamRunning = true; }).catch(e => {});
+        }
+      } catch (e) {}
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      }
+    });
+
+    function handleUserInteraction() {
+      unlockAudio();
+      requestWakeLock();
+    }
+
+    function unlockAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSelectedSound() {
+      unlockAudio();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+
+      if (selectedSound === 'aankondiging') {
+        createTone(1046.50, now, 1.8, 0.25, 'sine');
+        createTone(1318.51, now + 0.2, 2.0, 0.28, 'sine');
+        createTone(1567.98, now + 0.4, 2.2, 0.32, 'sine');
+        createTone(2093.00, now + 0.6, 2.8, 0.35, 'sine');
+      } else if (selectedSound === 'afkondiging') {
+        createTone(2093.00, now, 1.8, 0.35, 'sine');
+        createTone(1567.98, now + 0.2, 2.0, 0.32, 'sine');
+        createTone(1318.51, now + 0.4, 2.2, 0.28, 'sine');
+        createTone(1046.50, now + 0.6, 2.8, 0.25, 'sine');
+      } else if (selectedSound === 'bigben') {
+        createTone(329.63, now, 1.2, 0.35, 'sine');
+        createTone(415.30, now + 0.45, 1.2, 0.35, 'sine');
+        createTone(369.99, now + 0.90, 1.2, 0.35, 'sine');
+        createTone(246.94, now + 1.35, 2.5, 0.40, 'sine');
+      } else if (selectedSound === 'gong') {
+        createTone(146.83, now, 5.0, 0.45, 'sine');
+        createTone(293.66, now, 4.5, 0.20, 'sine');
+        createTone(440.00, now + 0.05, 3.5, 0.10, 'sine');
+      } else if (selectedSound === 'startrek') {
+        createTone(880.00, now, 0.1, 0.3, 'sine');
+        createTone(1760.00, now + 0.08, 0.12, 0.35, 'sine');
+        createTone(1318.51, now + 0.25, 0.8, 0.35, 'triangle');
+      }
+    }
+
+    function createTone(freq, startTime, duration, volume, type) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(volume, startTime + 0.03); 
+      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    }
+
+    function changeSound(newSound) {
+      selectedSound = newSound;
+      localStorage.setItem('kleurenklok_sound', newSound);
+      playSelectedSound();
+    }
+
+    function toggleHourHand(checked) {
+      showHourHand = checked;
+      localStorage.setItem('kleurenklok_show_hour_hand', checked);
+      updateHand();
+    }
+
+    function toggleClockNumbers(checked) {
+      showClockNumbers = checked;
+      localStorage.setItem('kleurenklok_show_clock_numbers', checked);
+      drawClockNumbers();
+    }
+
+    function drawClockTicks() {
+      const ticksGroup = document.getElementById('ticks-layer');
+      ticksGroup.innerHTML = '';
+      const radius = 145;
+
+      for (let i = 0; i < 60; i++) {
+        const angle = (i * 6) * (Math.PI / 180);
+        const isFiveMin = i % 5 === 0;
+        const tickLength = isFiveMin ? 10 : 5;
+        const strokeWidth = isFiveMin ? 2.5 : 1.2;
+
+        const x1 = 180 + Math.sin(angle) * (radius - tickLength);
+        const y1 = 180 - Math.cos(angle) * (radius - tickLength);
+        const x2 = 180 + Math.sin(angle) * radius;
+        const y2 = 180 - Math.cos(angle) * radius;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke', '#000000');
+        line.setAttribute('stroke-width', strokeWidth);
+        line.setAttribute('stroke-linecap', 'round');
+        ticksGroup.appendChild(line);
+      }
+    }
+
+    function drawClockNumbers() {
+      const numbersGroup = document.getElementById('numbers-layer');
+      numbersGroup.innerHTML = '';
+
+      if (!showClockNumbers) return;
+
+      const radius = 122;
+      for (let i = 1; i <= 12; i++) {
+        const angle = (i * 30) * (Math.PI / 180);
+        const x = 180 + Math.sin(angle) * radius;
+        const y = 180 - Math.cos(angle) * radius;
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', y);
+        text.setAttribute('fill', '#333333');
+        text.setAttribute('font-size', '16');
+        text.setAttribute('font-weight', 'bold');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'central');
+        text.textContent = i;
+
+        numbersGroup.appendChild(text);
+      }
+    }
+
+    function loadSavedData() {
+      const saved = localStorage.getItem('kleurenklok_routines');
+      if (saved) {
+        try { routines = JSON.parse(saved); } 
+        catch (e) { routines = JSON.parse(JSON.stringify(defaultRoutines)); }
+      } else {
+        routines = JSON.parse(JSON.stringify(defaultRoutines));
+      }
+
+      const savedTimers = localStorage.getItem('kleurenklok_standalone');
+      if (savedTimers) {
+        try { standaloneTimers = JSON.parse(savedTimers); }
+        catch (e) { standaloneTimers = JSON.parse(JSON.stringify(defaultStandaloneTimers)); }
+      } else {
+        standaloneTimers = JSON.parse(JSON.stringify(defaultStandaloneTimers));
+      }
+
+      const savedSound = localStorage.getItem('kleurenklok_sound');
+      if (savedSound) {
+        selectedSound = savedSound;
+        document.getElementById('sound-select').value = savedSound;
+      }
+
+      showHourHand = localStorage.getItem('kleurenklok_show_hour_hand') === 'true';
+      document.getElementById('toggle-hour-hand').checked = showHourHand;
+
+      showClockNumbers = localStorage.getItem('kleurenklok_show_clock_numbers') === 'true';
+      document.getElementById('toggle-clock-numbers').checked = showClockNumbers;
+    }
+
+    function saveData() {
+      localStorage.setItem('kleurenklok_routines', JSON.stringify(routines));
+      localStorage.setItem('kleurenklok_standalone', JSON.stringify(standaloneTimers));
+    }
+
+    function toggleSidebar(open) {
+      handleUserInteraction();
+      document.getElementById('sidebar').classList.toggle('open', open);
+      document.getElementById('sidebar-overlay').classList.toggle('open', open);
+      if (!open) {
+        closeAllPopovers();
+        if (activeMode === 'clock') {
+          activeEditIndex = -1;
+          activeClockOverrideIndex = -1;
+          activeBlockOverrideIndex = -1;
+        }
+        renderAccordions();
+        updateClock();
+      }
+    }
+
+    function closeAllPopovers() {
+      document.querySelectorAll('.palette-popover').forEach(el => el.classList.remove('open'));
+    }
+
+    function calculateTotalDuration(r) {
+      let startInMin = (parseInt(r.startHour) || 0) * 60 + (parseInt(r.startMin) || 0);
+      let endInMin = (parseInt(r.endHour) || 0) * 60 + (parseInt(r.endMin) || 0);
+      if (endInMin <= startInMin) {
+        endInMin += 24 * 60;
+      }
+      return endInMin - startInMin;
+    }
+
+    function setClockFocus(rIndex, bIndex = -1) {
+      activeMode = 'clock';
+      activeClockOverrideIndex = rIndex;
+      activeBlockOverrideIndex = bIndex;
+      activeTimerIndex = -1;
+      updateClock();
+    }
+
+    function setTimerFocus(sIndex) {
+      activeMode = 'timer';
+      activeTimerIndex = sIndex;
+      activeClockOverrideIndex = -1;
+      activeBlockOverrideIndex = -1;
+      updateClock();
+    }
+
+    function toggleTimerRun(sIndex, event) {
+      if (event) event.stopPropagation();
+
+      if (runningTimerState && runningTimerState.index === sIndex) {
+        clearInterval(timerInterval);
+        runningTimerState = null;
+        renderStandaloneTimers();
+        updateClock();
+        return;
+      }
+
+      const timer = standaloneTimers[sIndex];
+      const totalSec = (timer.duration || 1) * 60;
+      runningTimerState = {
+        index: sIndex,
+        totalSeconds: totalSec,
+        remainingSeconds: totalSec,
+        endTimestamp: Date.now() + (totalSec * 1000)
+      };
+
+      activeMode = 'timer';
+      activeTimerIndex = sIndex;
+
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (!runningTimerState) return;
+        const now = Date.now();
+        const diff = Math.max(0, Math.ceil((runningTimerState.endTimestamp - now) / 1000));
+        runningTimerState.remainingSeconds = diff;
+
+        if (diff <= 0) {
+          clearInterval(timerInterval);
+          playSelectedSound();
+          runningTimerState = null;
+          renderStandaloneTimers();
+        }
+        updateClock();
+      }, 250);
+
+      renderStandaloneTimers();
+      updateClock();
+    }
+
+    function toggleEditRoutine(rIndex, event) {
+      event.stopPropagation();
+      if (activeEditIndex === rIndex) {
+        activeEditIndex = -1;
+        activeClockOverrideIndex = -1;
+        activeBlockOverrideIndex = -1;
+      } else {
+        activeEditIndex = rIndex;
+        setClockFocus(rIndex);
+      }
+      renderAccordions();
+      updateClock();
+    }
+
+    function addRoutine() {
+      const newRoutine = {
+        title: 'Nieuwe routine',
+        startHour: 12,
+        startMin: 0,
+        endHour: 13,
+        endMin: 0,
+        blocks: [
+          { name: 'Activiteit 1', duration: 30, color: fixedPalette[0] },
+          { name: 'Activiteit 2', duration: 30, color: fixedPalette[1] }
+        ]
+      };
+      routines.push(newRoutine);
+      activeEditIndex = routines.length - 1;
+      setClockFocus(activeEditIndex);
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function removeRoutine(rIndex, event) {
+      if (event) event.stopPropagation();
+      routines.splice(rIndex, 1);
+      activeEditIndex = -1;
+      activeClockOverrideIndex = -1;
+      activeBlockOverrideIndex = -1;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function renderAccordions() {
+      const container = document.getElementById('routines-accordion-list');
+      container.innerHTML = '';
+
+      routines.forEach((item, rIndex) => {
+        const isEditing = rIndex === activeEditIndex;
+        const totalAvailableMin = calculateTotalDuration(item);
+        const usedMin = item.blocks.reduce((sum, b) => sum + (parseInt(b.duration) || 0), 0);
+        const freeMin = totalAvailableMin - usedMin;
+
+        const startTimeStr = `${item.startHour.toString().padStart(2, '0')}:${item.startMin.toString().padStart(2, '0')}`;
+        const endTimeStr = `${item.endHour.toString().padStart(2, '0')}:${item.endMin.toString().padStart(2, '0')}`;
+        const routineTitleText = item.title || `Routine ${startTimeStr}`;
+
+        const card = document.createElement('div');
+        card.className = `hour-card ${isEditing ? 'open' : ''}`;
+
+        const header = document.createElement('div');
+        header.className = 'hour-card-header';
+        header.onclick = () => setClockFocus(rIndex);
+
+        const editBtnText = isEditing ? '<i class="fa-solid fa-check"></i> Klaar' : '<i class="fa-solid fa-pen"></i> Bewerken';
+        const editBtnClass = isEditing ? 'btn-edit active' : 'btn-edit';
+
+        header.innerHTML = `
+          <div class="hour-card-title">
+            <i class="fa-solid ${isEditing ? 'fa-pen-to-square' : 'fa-clock'}"></i>
+            <span>${routineTitleText}</span>
+          </div>
+          <div class="hour-card-meta">
+            <span>${startTimeStr} - ${endTimeStr}</span>
+            <button class="${editBtnClass}" onclick="toggleEditRoutine(${rIndex}, event)">${editBtnText}</button>
+            ${routines.length > 1 ? `<button class="btn-icon-tertiary" title="Verwijder routine" onclick="removeRoutine(${rIndex}, event)"><i class="fa-regular fa-trash-can"></i></button>` : ''}
+          </div>
+        `;
+
+        const body = document.createElement('div');
+        body.className = 'hour-card-body';
+
+        let startHourOpts = '', endHourOpts = '';
+        for (let h = 0; h < 24; h++) {
+          const val = h.toString().padStart(2, '0');
+          startHourOpts += `<option value="${h}" ${h === item.startHour ? 'selected' : ''}>${val}</option>`;
+          endHourOpts += `<option value="${h}" ${h === item.endHour ? 'selected' : ''}>${val}</option>`;
+        }
+
+        let startMinOpts = '', endMinOpts = '';
+        [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].forEach(m => {
+          const val = m.toString().padStart(2, '0');
+          startMinOpts += `<option value="${m}" ${m === item.startMin ? 'selected' : ''}>${val}</option>`;
+          endMinOpts += `<option value="${m}" ${m === item.endMin ? 'selected' : ''}>${val}</option>`;
+        });
+
+        let blocksHtml = '';
+        item.blocks.forEach((block, bIndex) => {
+          const swatchesHtml = fixedPalette.map(c => 
+            `<div class="palette-swatch" style="background:${c};" onclick="selectColor(${rIndex}, ${bIndex}, '${c}')"></div>`
+          ).join('');
+
+          const swatchDisabledClass = !isEditing ? 'disabled' : '';
+
+          blocksHtml += `
+            <div class="block-input">
+              <input type="text" value="${block.name}" placeholder="Naam" ${!isEditing ? 'disabled' : ''} 
+                onfocus="setClockFocus(${rIndex}, ${bIndex})" onchange="updateBlockName(${rIndex}, ${bIndex}, this.value)">
+              <input type="number" value="${block.duration}" min="1" ${!isEditing ? 'disabled' : ''} 
+                onfocus="setClockFocus(${rIndex}, ${bIndex})" onchange="updateBlockDuration(${rIndex}, ${bIndex}, this.value)">
+              <div class="color-swatch-btn ${swatchDisabledClass}" style="background:${block.color};" 
+                onclick="${isEditing ? `togglePalettePopover(${rIndex}, ${bIndex}, event)` : ''}"></div>
+              <div id="popover-${rIndex}-${bIndex}" class="palette-popover">${swatchesHtml}</div>
+              <button class="btn-icon-tertiary" title="Verwijder blok" ${!isEditing ? 'disabled' : ''} onclick="removeBlock(${rIndex}, ${bIndex})"><i class="fa-regular fa-trash-can"></i></button>
+            </div>
+          `;
+        });
+
+        const isFull = freeMin <= 0;
+        const bannerClass = isFull ? 'time-info-banner full' : 'time-info-banner';
+        const bannerText = isFull 
+          ? `<span>Totale tijd bereikt (${totalAvailableMin}m)</span>` 
+          : `<span>Beschikbare tijd over:</span> <span>${freeMin} minuten</span>`;
+
+        body.innerHTML = `
+          <div class="form-row">
+            <label style="width: 90px;">Naam:</label>
+            <input type="text" value="${item.title || ''}" placeholder="Bijv. Ochtendroutine" ${!isEditing ? 'disabled' : ''} 
+              onfocus="setClockFocus(${rIndex})" onchange="updateRoutineTitle(${rIndex}, this.value)">
+          </div>
+          <div class="form-row">
+            <label style="width: 90px;">Starttijd:</label>
+            <div class="time-picker-group">
+              <select ${!isEditing ? 'disabled' : ''} onfocus="setClockFocus(${rIndex})" onchange="updateTime(${rIndex}, 'startHour', this.value)">${startHourOpts}</select> :
+              <select ${!isEditing ? 'disabled' : ''} onfocus="setClockFocus(${rIndex})" onchange="updateTime(${rIndex}, 'startMin', this.value)">${startMinOpts}</select>
+            </div>
+          </div>
+          <div class="form-row" style="padding-bottom: 10px; border-bottom: 1px dashed #e0e0e0;">
+            <label style="width: 90px;">Eindtijd:</label>
+            <div class="time-picker-group">
+              <select ${!isEditing ? 'disabled' : ''} onfocus="setClockFocus(${rIndex})" onchange="updateTime(${rIndex}, 'endHour', this.value)">${endHourOpts}</select> :
+              <select ${!isEditing ? 'disabled' : ''} onfocus="setClockFocus(${rIndex})" onchange="updateTime(${rIndex}, 'endMin', this.value)">${endMinOpts}</select>
+            </div>
+          </div>
+
+          <div class="${bannerClass}">
+            ${bannerText}
+          </div>
+          
+          <div class="blocks-table-header">
+            <div class="col-name" style="margin-left: 0;">Tijdsblokken</div>
+            <div class="col-min">Min.</div>
+            <div class="col-color"></div>
+            <div class="col-action"></div>
+          </div>
+
+          ${blocksHtml}
+          <button class="btn-tertiary" onclick="addBlock(${rIndex})" ${(!isEditing || freeMin <= 0) ? 'disabled' : ''}>
+            <i class="fa-solid fa-plus"></i> <span>Blok toevoegen</span>
+          </button>
+        `;
+
+        card.appendChild(header);
+        card.appendChild(body);
+        container.appendChild(card);
+      });
+
+      renderStandaloneTimers();
+    }
+
+    function renderStandaloneTimers() {
+      const container = document.getElementById('standalone-timers-list');
+      container.innerHTML = '';
+
+      standaloneTimers.forEach((timer, index) => {
+        const isRunning = runningTimerState && runningTimerState.index === index;
+        const swatchesHtml = fixedPalette.map(c => 
+          `<div class="palette-swatch" style="background:${c};" onclick="selectStandaloneColor(${index}, '${c}')"></div>`
+        ).join('');
+
+        const row = document.createElement('div');
+        row.className = 'block-input';
+        row.innerHTML = `
+          <button class="btn-play-timer ${isRunning ? 'running' : ''}" title="${isRunning ? 'Stop timer' : 'Start timer'}" onclick="toggleTimerRun(${index}, event)">
+            <i class="fa-solid ${isRunning ? 'fa-stop' : 'fa-play'}"></i>
+          </button>
+          <input type="text" value="${timer.name}" placeholder="Naam timer" 
+            onfocus="setTimerFocus(${index})" oninput="updateStandaloneName(${index}, this.value)">
+          <input type="number" value="${timer.duration}" min="1" max="60" 
+            onfocus="setTimerFocus(${index})" oninput="updateStandaloneDuration(${index}, this.value)">
+          <div class="color-swatch-btn" style="background:${timer.color};" onclick="toggleStandalonePalettePopover(${index}, event)"></div>
+          <div id="popover-standalone-${index}" class="palette-popover">${swatchesHtml}</div>
+          <button class="btn-icon-tertiary" title="Verwijder timer" onclick="removeStandaloneTimer(${index})"><i class="fa-regular fa-trash-can"></i></button>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function togglePalettePopover(rIndex, bIndex, event) {
+      event.stopPropagation();
+      setClockFocus(rIndex, bIndex);
+      const popover = document.getElementById(`popover-${rIndex}-${bIndex}`);
+      const isOpen = popover.classList.contains('open');
+      closeAllPopovers();
+      if (!isOpen) popover.classList.add('open');
+    }
+
+    function toggleStandalonePalettePopover(sIndex, event) {
+      event.stopPropagation();
+      setTimerFocus(sIndex);
+      const popover = document.getElementById(`popover-standalone-${sIndex}`);
+      const isOpen = popover.classList.contains('open');
+      closeAllPopovers();
+      if (!isOpen) popover.classList.add('open');
+    }
+
+    function selectColor(rIndex, bIndex, color) {
+      setClockFocus(rIndex, bIndex);
+      routines[rIndex].blocks[bIndex].color = color;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function selectStandaloneColor(sIndex, color) {
+      setTimerFocus(sIndex);
+      standaloneTimers[sIndex].color = color;
+      saveData();
+      renderStandaloneTimers();
+      updateClock();
+    }
+
+    function updateRoutineTitle(rIndex, value) {
+      setClockFocus(rIndex);
+      routines[rIndex].title = value;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function updateTime(rIndex, field, value) {
+      setClockFocus(rIndex);
+      routines[rIndex][field] = parseInt(value);
+
+      const totalAvailable = calculateTotalDuration(routines[rIndex]);
+      let currentSum = 0;
+      routines[rIndex].blocks.forEach(b => {
+        if (currentSum + b.duration > totalAvailable) {
+          b.duration = Math.max(1, totalAvailable - currentSum);
+        }
+        currentSum += b.duration;
+      });
+
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function updateBlockName(rIndex, bIndex, value) {
+      setClockFocus(rIndex, bIndex);
+      routines[rIndex].blocks[bIndex].name = value;
+      saveData();
+      updateClock();
+    }
+
+    function updateBlockDuration(rIndex, bIndex, value) {
+      setClockFocus(rIndex, bIndex);
+      let duration = parseInt(value) || 0;
+      const totalAvailable = calculateTotalDuration(routines[rIndex]);
+      
+      const otherBlocksDuration = routines[rIndex].blocks.reduce((sum, b, idx) => {
+        return sum + (idx === bIndex ? 0 : (parseInt(b.duration) || 0));
+      }, 0);
+
+      const maxAllowed = totalAvailable - otherBlocksDuration;
+      if (duration > maxAllowed) {
+        duration = Math.max(1, maxAllowed);
+      }
+
+      routines[rIndex].blocks[bIndex].duration = duration;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function addBlock(rIndex) {
+      const totalAvailable = calculateTotalDuration(routines[rIndex]);
+      const usedMin = routines[rIndex].blocks.reduce((sum, b) => sum + (parseInt(b.duration) || 0), 0);
+      const freeMin = totalAvailable - usedMin;
+
+      if (freeMin <= 0) return;
+
+      const currentBlocks = routines[rIndex].blocks;
+      const usedColors = currentBlocks.map(b => b.color.toUpperCase());
+      const nextColor = fixedPalette.find(c => !usedColors.includes(c.toUpperCase())) || fixedPalette[0];
+
+      routines[rIndex].blocks.push({
+        name: 'Nieuw blok',
+        duration: Math.min(15, freeMin),
+        color: nextColor
+      });
+
+      const newBIndex = routines[rIndex].blocks.length - 1;
+      setClockFocus(rIndex, newBIndex);
+
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function removeBlock(rIndex, bIndex) {
+      setClockFocus(rIndex);
+      routines[rIndex].blocks.splice(bIndex, 1);
+      activeBlockOverrideIndex = -1;
+      saveData();
+      renderAccordions();
+      updateClock();
+    }
+
+    function addStandaloneTimer() {
+      standaloneTimers.push({ name: 'Nieuwe timer', duration: 15, color: fixedPalette[4] });
+      setTimerFocus(standaloneTimers.length - 1);
+      saveData();
+      renderStandaloneTimers();
+      updateClock();
+    }
+
+    function updateStandaloneName(sIndex, val) {
+      setTimerFocus(sIndex);
+      standaloneTimers[sIndex].name = val;
+      saveData();
+      updateClock();
+    }
+
+    function updateStandaloneDuration(sIndex, val) {
+      setTimerFocus(sIndex);
+      standaloneTimers[sIndex].duration = Math.min(60, Math.max(1, parseInt(val) || 1));
+      saveData();
+      updateClock();
+    }
+
+    function removeStandaloneTimer(sIndex) {
+      if (runningTimerState && runningTimerState.index === sIndex) {
+        clearInterval(timerInterval);
+        runningTimerState = null;
+      }
+      standaloneTimers.splice(sIndex, 1);
+      activeMode = 'clock';
+      saveData();
+      renderStandaloneTimers();
+      updateClock();
+    }
+
+    document.addEventListener('click', () => closeAllPopovers());
+
+    function saveDataAndClock() {
+      saveData();
+      if (activeMode === 'clock') {
+        activeEditIndex = -1;
+        activeClockOverrideIndex = -1;
+        activeBlockOverrideIndex = -1;
+      }
+      updateClock();
+      toggleSidebar(false);
+    }
+
+    function getCoordinatesForPercent(percent, radius) {
+      const angle = (percent * 2 * Math.PI) - (Math.PI / 2);
+      return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+    }
+
+    function getCurrentActiveRoutine() {
+      if (activeClockOverrideIndex >= 0 && routines[activeClockOverrideIndex]) {
+        return routines[activeClockOverrideIndex];
+      }
+
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+
+      const active = routines.find(r => {
+        let start = r.startHour * 60 + r.startMin;
+        let end = r.endHour * 60 + r.endMin;
+        if (end <= start) end += 24 * 60;
+
+        let checkNow = nowMin;
+        if (checkNow < start && end > 24 * 60) checkNow += 24 * 60;
+
+        return checkNow >= start && checkNow < end;
+      });
+
+      return active || null;
+    }
+
+    function getNextRoutine(currentRoutine) {
+      if (!currentRoutine || routines.length <= 1) return null;
+      const currentIndex = routines.indexOf(currentRoutine);
+      return routines[(currentIndex + 1) % routines.length];
+    }
+
+    function getTargetHourForFocus(routine) {
+      if (activeBlockOverrideIndex >= 0 && routine.blocks[activeBlockOverrideIndex]) {
+        let rStartMin = routine.startHour * 60 + routine.startMin;
+        let elapsed = 0;
+        for (let i = 0; i < activeBlockOverrideIndex; i++) {
+          elapsed += (parseInt(routine.blocks[i].duration) || 0);
+        }
+        let blockStartMin = rStartMin + elapsed;
+        return Math.floor(blockStartMin / 60) % 24;
+      }
+      return activeClockOverrideIndex >= 0 ? routine.startHour : new Date().getHours();
+    }
+
+    function getHourSlices(routine, targetHour) {
+      if (!routine) return [];
+      let rStart = routine.startHour * 60 + routine.startMin;
+      let slices = [];
+      let currentMinCounter = rStart;
+
+      routine.blocks.forEach(b => {
+        let blockDur = parseInt(b.duration) || 0;
+        let blockRem = blockDur;
+
+        while (blockRem > 0) {
+          let currentH = Math.floor(currentMinCounter / 60) % 24;
+          let minuteInHour = currentMinCounter % 60;
+          let spaceInCurrentHour = 60 - minuteInHour;
+
+          let chunk = Math.min(blockRem, spaceInCurrentHour);
+
+          if (currentH === targetHour) {
+            slices.push({
+              name: b.name,
+              startMin: minuteInHour,
+              duration: chunk,
+              color: b.color
+            });
+          }
+
+          blockRem -= chunk;
+          currentMinCounter += chunk;
+        }
+      });
+
+      return slices;
+    }
+
+    function renderInnerClock(slices) {
+      const group = document.getElementById('slices');
+      group.innerHTML = '';
+      if (!slices || slices.length === 0) return;
+
+      const radius = 145;
+
+      slices.forEach(slice => {
+        const percent = slice.duration / 60;
+        const startPercent = slice.startMin / 60;
+        const endPercent = (slice.startMin + slice.duration) / 60;
+
+        const [startX, startY] = getCoordinatesForPercent(startPercent, radius);
+        const [endX, endY] = getCoordinatesForPercent(endPercent, radius);
+
+        const largeArcFlag = percent > 0.5 ? 1 : 0;
+
+        const pathData = [
+          `M 180 180`,
+          `L ${180 + startX} ${180 + startY}`,
+          `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${180 + endX} ${180 + endY}`,
+          `Z`
+        ].join(' ');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData);
+        path.setAttribute('fill', slice.color);
+        group.appendChild(path);
+
+        if (slice.name && slice.duration >= 3) {
+          const midPercent = startPercent + (percent / 2);
+          const textRadius = 85; 
+          const [midX, midY] = getCoordinatesForPercent(midPercent, textRadius);
+          
+          let angleDeg = midPercent * 360; 
+          let rotation = angleDeg - 90;
+          if (rotation > 90 && rotation < 270) {
+            rotation += 180;
+          }
+
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          const posX = 180 + midX;
+          const posY = 180 + midY;
+          
+          text.setAttribute('x', posX);
+          text.setAttribute('y', posY);
+          text.setAttribute('fill', '#ffffff');
+          text.setAttribute('font-size', '12');
+          text.setAttribute('font-weight', 'normal');
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('dominant-baseline', 'middle');
+          text.setAttribute('transform', `rotate(${rotation}, ${posX}, ${posY})`);
+          text.textContent = slice.name;
+
+          group.appendChild(text);
+        }
+      });
+    }
+
+    function renderTimerVisual(timer, remainingSec) {
+      const group = document.getElementById('slices');
+      group.innerHTML = '';
+
+      const radius = 145;
+      const percent = Math.min(1, Math.max(0, remainingSec / 3600));
+
+      if (percent <= 0) return;
+
+      const startPercent = 0;
+      const endPercent = percent;
+
+      const [startX, startY] = getCoordinatesForPercent(startPercent, radius);
+      const [endX, endY] = getCoordinatesForPercent(endPercent, radius);
+
+      const largeArcFlag = percent > 0.5 ? 1 : 0;
+
+      const pathData = [
+        `M 180 180`,
+        `L ${180 + startX} ${180 + startY}`,
+        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${180 + endX} ${180 + endY}`,
+        `Z`
+      ].join(' ');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathData);
+      path.setAttribute('fill', timer.color);
+      group.appendChild(path);
+    }
+
+    function renderOuterRing(nextRoutine) {
+      const ringGroup = document.getElementById('outer-ring');
+      const defsGroup = document.getElementById('svg-defs');
+      ringGroup.innerHTML = '';
+      defsGroup.innerHTML = '';
+
+      if (activeMode === 'timer') return;
+
+      const currentMinute = new Date().getMinutes();
+
+      if ((!TEST_OUTER_RING && currentMinute < 55) || !nextRoutine || !nextRoutine.blocks || nextRoutine.blocks.length === 0) {
+        return;
+      }
+
+      const firstBlock = nextRoutine.blocks[0];
+      const percent = firstBlock.duration / 60;
+      const startPercent = 0;
+      const endPercent = percent;
+
+      const innerR = 145;
+      const outerR = 168;
+
+      const [iStartX, iStartY] = getCoordinatesForPercent(startPercent, innerR);
+      const [iEndX, iEndY] = getCoordinatesForPercent(endPercent, innerR);
+      const [oStartX, oStartY] = getCoordinatesForPercent(startPercent, outerR);
+      const [oEndX, oEndY] = getCoordinatesForPercent(endPercent, outerR);
+
+      const largeArcFlag = percent > 0.5 ? 1 : 0;
+
+      const pathData = [
+        `M ${180 + oStartX} ${180 + oStartY}`,
+        `A ${outerR} ${outerR} 0 ${largeArcFlag} 1 ${180 + oEndX} ${180 + oEndY}`,
+        `L ${180 + iEndX} ${180 + iEndY}`,
+        `A ${innerR} ${innerR} 0 ${largeArcFlag} 0 ${180 + iStartX} ${180 + iStartY}`,
+        `Z`
+      ].join(' ');
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', pathData);
+      path.setAttribute('fill', firstBlock.color);
+      ringGroup.appendChild(path);
+
+      if (firstBlock.name && firstBlock.duration >= 4) {
+        const pathId = `text-path-first-block`;
+        const textR = 156.5; 
+        const [tStartX, tStartY] = getCoordinatesForPercent(startPercent, textR);
+        const [tEndX, tEndY] = getCoordinatesForPercent(endPercent, textR);
+
+        const textPathDef = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        textPathDef.setAttribute('id', pathId);
+        textPathDef.setAttribute('d', [
+          `M ${180 + tStartX} ${180 + tStartY}`,
+          `A ${textR} ${textR} 0 ${largeArcFlag} 1 ${180 + tEndX} ${180 + tEndY}`
+        ].join(' '));
+
+        defsGroup.appendChild(textPathDef);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('fill', '#ffffff');
+        text.setAttribute('font-size', '10');
+        text.setAttribute('font-weight', 'bold');
+
+        const textPath = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
+        textPath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', `#${pathId}`);
+        textPath.setAttribute('startOffset', '50%');
+        textPath.setAttribute('text-anchor', 'middle');
+        textPath.setAttribute('dominant-baseline', 'central');
+        textPath.textContent = firstBlock.name;
+
+        text.appendChild(textPath);
+        ringGroup.appendChild(text);
+      }
+    }
+
+    function updateClock() {
+      const titleEl = document.getElementById('clock-title');
+      const timeEl = document.getElementById('clock-time');
+
+      if (activeMode === 'timer') {
+        const timerIndex = activeTimerIndex >= 0 ? activeTimerIndex : (runningTimerState ? runningTimerState.index : 0);
+        const timer = standaloneTimers[timerIndex] || standaloneTimers[0];
+
+        if (!timer) return;
+
+        let remSec = (timer.duration || 1) * 60;
+        if (runningTimerState && runningTimerState.index === timerIndex) {
+          remSec = runningTimerState.remainingSeconds;
+        }
+
+        const m = Math.floor(remSec / 60);
+        const s = remSec % 60;
+        const formattedRemaining = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+        titleEl.style.display = 'block';
+        timeEl.style.display = 'block';
+        titleEl.textContent = timer.name || 'Timer';
+        timeEl.textContent = `Nog ${formattedRemaining}`;
+
+        renderTimerVisual(timer, remSec);
+
+        const percentLeft = remSec / 3600;
+        const handDeg = percentLeft * 360;
+        const minuteHand = document.getElementById('minute-hand');
+        if (minuteHand) {
+          minuteHand.setAttribute('transform', `rotate(${handDeg}, 180, 180)`);
+        }
+
+        const hourHand = document.getElementById('hour-hand');
+        if (hourHand) hourHand.setAttribute('display', 'none');
+
+        renderOuterRing(null);
+      } else {
+        const activeRoutine = getCurrentActiveRoutine();
+
+        if (!activeRoutine) {
+          titleEl.style.display = 'none';
+          timeEl.style.display = 'block';
+          timeEl.textContent = 'Geen actieve routine';
+
+          renderInnerClock([]);
+          renderOuterRing(null);
+          return;
+        }
+
+        titleEl.style.display = 'block';
+        timeEl.style.display = 'block';
+
+        const startStr = `${activeRoutine.startHour.toString().padStart(2, '0')}:${activeRoutine.startMin.toString().padStart(2, '0')}`;
+        const endStr = `${activeRoutine.endHour.toString().padStart(2, '0')}:${activeRoutine.endMin.toString().padStart(2, '0')}`;
+        const routineTimeString = `${startStr} - ${endStr}`;
+
+        titleEl.textContent = activeRoutine.title || 'Routine';
+        timeEl.textContent = routineTimeString;
+
+        const displayHour = getTargetHourForFocus(activeRoutine);
+        const currentHourSlices = getHourSlices(activeRoutine, displayHour);
+        renderInnerClock(currentHourSlices);
+
+        const nextRoutine = getNextRoutine(activeRoutine);
+        renderOuterRing(nextRoutine);
+      }
+    }
+
+    function updateHand() {
+      const minuteHand = document.getElementById('minute-hand');
+      const hourHand = document.getElementById('hour-hand');
+
+      if (activeMode === 'clock') {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentSecond = now.getSeconds();
+        
+        const minutes = currentMinute + (currentSecond / 60);
+        const minuteDeg = minutes * 6;
+
+        if (minuteHand) {
+          minuteHand.setAttribute('transform', `rotate(${minuteDeg}, 180, 180)`);
+        }
+
+        // Kleine wijzer (Uurwijzer)
+        if (hourHand) {
+          if (showHourHand) {
+            hourHand.setAttribute('display', 'block');
+            const hours = (currentHour % 12) + (minutes / 60);
+            const hourDeg = hours * 30;
+            hourHand.setAttribute('transform', `rotate(${hourDeg}, 180, 180)`);
+          } else {
+            hourHand.setAttribute('display', 'none');
+          }
+        }
+
+        if (lastPlayedMinute !== currentMinute) {
+          const activeRoutine = getCurrentActiveRoutine();
+          if (activeRoutine) {
+            const currentHourSlices = getHourSlices(activeRoutine, now.getHours());
+            currentHourSlices.forEach(slice => {
+              if (currentMinute === slice.startMin) {
+                playSelectedSound();
+                lastPlayedMinute = currentMinute;
+              }
+            });
+          }
+        }
+      }
+
+      updateClock();
+    }
+
+    loadSavedData();
+    renderAccordions();
+    drawClockTicks();
+    drawClockNumbers();
+    updateClock();
+    updateHand();
+    setInterval(updateHand, 1000);
+  </script>
+</body>
+</html>      padding: 24px 10px;
       gap: 20px;
     }
 
