@@ -420,8 +420,8 @@
       color: #d32f2f;
     }
 
-    /* Onzichtbare video elementen voor iPad Wake Lock */
-    #wake-lock-video {
+    /* Onzichtbare elementen voor iPad Anti-Slaapstand Stream */
+    #wake-canvas, #wake-video {
       position: absolute;
       width: 1px;
       height: 1px;
@@ -432,12 +432,11 @@
     }
   </style>
 </head>
-<body onclick="handleUserInteraction()">
+<body onclick="handleUserInteraction()" ontouchstart="handleUserInteraction()">
 
-  <!-- Onzichtbare video-loop als fallback voor iOS/iPadOS -->
-  <video id="wake-lock-video" muted playsinline loop>
-    <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAA1tZGF0AAAAAAABAAA=" type="video/mp4">
-  </video>
+  <!-- Verborge elementen voor iPad Wake Lock Stream -->
+  <canvas id="wake-canvas" width="10" height="10"></canvas>
+  <video id="wake-video" muted playsinline loop></video>
 
   <button class="settings-btn" title="Instellingen" onclick="toggleSidebar(true)">
     <i class="fa-solid fa-gear"></i>
@@ -508,7 +507,7 @@
   <script>
     const TEST_OUTER_RING = false;
 
-    // Nieuw kleurenpalette
+    // Kleurenpalette
     const fixedPalette = [
       '#629905', '#8BC53F', '#C1E658', '#006798', '#3398D4', 
       '#8E0062', '#C92E92', '#FF5500', '#FF9300', '#FFC200'
@@ -543,18 +542,52 @@
     let selectedSound = 'aankondiging';
     let audioCtx = null;
     let wakeLock = null;
+    let isVideoStreamRunning = false;
 
+    // --- GEAVANCEERDE IPAD WAKE-LOCK IMPLEMENTATIE ---
     async function requestWakeLock() {
+      // 1. Probeer de standaard Web Wake Lock API
       if ('wakeLock' in navigator) {
         try {
           wakeLock = await navigator.wakeLock.request('screen');
         } catch (err) {
-          console.log('Wake Lock error:', err.message);
+          console.log('Wake Lock API niet toegestaan:', err.message);
         }
       }
-      const video = document.getElementById('wake-lock-video');
-      if (video && video.paused) {
-        video.play().catch(e => console.log('Video play error:', e));
+
+      // 2. Fallback: Start een dynamische Canvas Stream Video (speciaal voor iOS Safari)
+      startCanvasVideoStream();
+    }
+
+    function startCanvasVideoStream() {
+      if (isVideoStreamRunning) return;
+
+      const canvas = document.getElementById('wake-canvas');
+      const video = document.getElementById('wake-video');
+      if (!canvas || !video) return;
+
+      const ctx = canvas.getContext('2d');
+      let colorToggle = false;
+
+      // Update de canvas continu om actieve videobeelden te simuleren
+      setInterval(() => {
+        ctx.fillStyle = colorToggle ? '#ffffff' : '#000000';
+        ctx.fillRect(0, 0, 10, 10);
+        colorToggle = !colorToggle;
+      }, 1000);
+
+      try {
+        if (canvas.captureStream) {
+          const stream = canvas.captureStream(1); // 1 fps stream
+          video.srcObject = stream;
+          video.play().then(() => {
+            isVideoStreamRunning = true;
+          }).catch(e => {
+            console.log('Video stream play error:', e);
+          });
+        }
+      } catch (e) {
+        console.log('Canvas stream failed:', e);
       }
     }
 
@@ -1066,9 +1099,12 @@
         const activeSchema = getCurrentActiveSchema();
         if (activeSchema && activeSchema.blocks) {
           let accumulatedMin = 0;
-          for (let block of activeSchema.blocks) {
+          for (let i = 0; i < activeSchema.blocks.length; i++) {
+            const block = activeSchema.blocks[i];
+            const startMin = accumulatedMin;
             accumulatedMin += block.duration;
-            if (currentMinute === (accumulatedMin % 60)) {
+
+            if (currentMinute === startMin) {
               playSelectedSound();
               lastPlayedMinute = currentMinute;
               break;
